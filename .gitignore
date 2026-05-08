@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist-electron/
+build/
+out/
+release/
+.env
+.env.local
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/

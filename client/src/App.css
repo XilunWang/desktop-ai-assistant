@@ -1,0 +1,613 @@
+/* ===== 全局：飞书风格基色 ===== */
+:root {
+  --bg: #f5f6f7;
+  --panel: #ffffff;
+  --border: #e4e6eb;
+  --border-strong: #d0d3d9;
+  --text: #1f2329;
+  --text-secondary: #646a73;
+  --text-muted: #8f959e;
+  --primary: #3370ff;
+  --primary-hover: #245bdb;
+  --primary-soft: #e1eaff;
+  --danger: #f54a45;
+  --code-bg: #f5f6f7;
+  --code-block-bg: #f7f8fa;
+  --code-header-bg: #eef0f3;
+  --shadow-sm: 0 1px 2px rgba(31, 35, 41, 0.06);
+  --shadow-md: 0 2px 8px rgba(31, 35, 41, 0.08);
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue',
+    'Segoe UI', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+
+/* ===== Header ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  height: 48px;
+  flex-shrink: 0;
+}
+.app-header .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.app-header .logo {
+  font-size: 18px;
+}
+.app-header .actions {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+.app-header .actions button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+.app-header .actions button:hover:not(:disabled) {
+  background: var(--bg);
+}
+.app-header .actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== Settings ===== */
+.settings-panel {
+  padding: 14px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.settings-panel label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.settings-panel textarea {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.settings-panel textarea:focus {
+  border-color: var(--primary);
+}
+.settings-panel .hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ===== Chat ===== */
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  scroll-behavior: smooth;
+}
+.chat-window::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.chat-window::-webkit-scrollbar-thumb {
+  background: rgba(31, 35, 41, 0.15);
+  border-radius: 4px;
+}
+.chat-window::-webkit-scrollbar-thumb:hover {
+  background: rgba(31, 35, 41, 0.3);
+}
+
+.empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-align: center;
+}
+.empty-emoji {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+.empty-title {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+.empty-tips {
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+/* ===== Bubble ===== */
+.bubble-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.bubble-row.user {
+  flex-direction: row-reverse;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.bubble-row.user .avatar {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.bubble {
+  max-width: calc(100% - 80px);
+  min-width: 0;
+}
+.bubble-content {
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: break-word;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.bubble-row.user .bubble-content {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.bubble-row.user .user-text {
+  white-space: pre-wrap;
+}
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--primary);
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  animation: blink 1s steps(2) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ===== Input ===== */
+.input-box {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 16px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.input-box textarea {
+  flex: 1;
+  resize: none;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  line-height: 1.5;
+  max-height: 200px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.input-box textarea:focus {
+  border-color: var(--primary);
+  background: var(--panel);
+}
+.btn {
+  border: none;
+  border-radius: var(--radius);
+  padding: 0 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s, opacity 0.15s;
+  align-self: stretch;
+  min-width: 80px;
+}
+.btn.send {
+  background: var(--primary);
+  color: #fff;
+}
+.btn.send:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+.btn.send:disabled {
+  background: var(--primary);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn.stop {
+  background: var(--danger);
+  color: #fff;
+}
+.btn.stop:hover {
+  background: #dc3c37;
+}
+
+/* ===========================================================
+   Markdown 样式 - 飞书 / Lark 文档风格
+   =========================================================== */
+.md-body {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.75;
+  word-wrap: break-word;
+}
+.md-body > *:first-child {
+  margin-top: 0 !important;
+}
+.md-body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* 标题 */
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4,
+.md-body h5,
+.md-body h6 {
+  margin: 20px 0 8px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+.md-body h1 {
+  font-size: 22px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.md-body h2 {
+  font-size: 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.md-body h3 {
+  font-size: 16px;
+}
+.md-body h4 {
+  font-size: 14px;
+}
+.md-body h5,
+.md-body h6 {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 段落 */
+.md-body p {
+  margin: 8px 0;
+}
+
+/* 加粗 / 斜体 */
+.md-body strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.md-body em {
+  font-style: italic;
+}
+
+/* 链接 */
+.md-body a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.md-body a:hover {
+  text-decoration: underline;
+}
+
+/* 列表 */
+.md-body ul,
+.md-body ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+.md-body li {
+  margin: 4px 0;
+}
+.md-body li > p {
+  margin: 4px 0;
+}
+.md-body input[type='checkbox'] {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* 引用 */
+.md-body blockquote {
+  margin: 12px 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--primary);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 0 6px 6px 0;
+}
+.md-body blockquote > *:first-child {
+  margin-top: 0;
+}
+.md-body blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
+/* 分割线 */
+.md-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 18px 0;
+}
+
+/* 行内代码 */
+.md-body .md-inline-code,
+.md-body code:not(pre code) {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  color: #d4380d;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* 代码块 */
+.md-code-wrap {
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--code-block-bg);
+  overflow: hidden;
+}
+.md-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--code-header-bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.md-code-lang {
+  text-transform: lowercase;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+}
+.md-code-copy {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.md-code-copy:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.md-code-pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  background: var(--code-block-bg);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.md-code-pre code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+.md-code-pre::-webkit-scrollbar {
+  height: 6px;
+}
+.md-code-pre::-webkit-scrollbar-thumb {
+  background: rgba(31, 35, 41, 0.2);
+  border-radius: 3px;
+}
+
+/* 表格 - 飞书风格 */
+.md-table-wrap {
+  margin: 12px 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.md-body table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.md-body table th,
+.md-body table td {
+  padding: 8px 12px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.md-body table th:last-child,
+.md-body table td:last-child {
+  border-right: none;
+}
+.md-body table tr:last-child td {
+  border-bottom: none;
+}
+.md-body table th {
+  background: var(--bg);
+  font-weight: 600;
+  color: var(--text);
+}
+.md-body table tbody tr:hover {
+  background: rgba(51, 112, 255, 0.04);
+}
+
+/* 图片 */
+.md-body img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+/* 用户消息气泡里的内联代码（白底反差） */
+.bubble-row.user .bubble-content code {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ===== 工具调用卡片 ===== */
+.tool-calls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tool-call {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+  font-size: 13px;
+}
+.tool-call.error {
+  border-color: #fbb;
+  background: #fef0f0;
+}
+.tool-call.running {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.tool-call-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.tool-call-header:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+.tool-icon {
+  font-size: 14px;
+}
+.tool-name {
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 12.5px;
+}
+.tool-status {
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.tool-toggle {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.tool-call-body {
+  padding: 6px 12px 10px;
+  border-top: 1px dashed var(--border);
+  background: var(--panel);
+}
+.tool-section {
+  margin-top: 8px;
+}
+.tool-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.tool-pre {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--code-block-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+}
