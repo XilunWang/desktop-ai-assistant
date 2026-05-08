@@ -2,6 +2,18 @@
 
 一个基于 **Electron + React + Express** 的桌面 AI 聊天助手，AI 能力通过 OpenAI 兼容协议接入，支持 OpenAI、DeepSeek、通义千问、本地 Ollama 等多种模型。
 
+```env
+# DeepSeek 示例:
+# OPENAI_BASE_URL=https://api.deepseek.com/v1
+# OPENAI_API_KEY=sk-xxx
+# OPENAI_MODEL=deepseek-chat
+
+# 本地 Ollama 示例:
+# OPENAI_BASE_URL=http://localhost:11434/v1
+# OPENAI_API_KEY=ollama
+# OPENAI_MODEL=qwen2.5
+```
+
 ## 技术栈
 
 - **桌面端壳**：Electron
