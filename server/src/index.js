@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const chatRouter = require('./routes/chat');
+const titleRouter = require('./routes/title');
 const mcp = require('./services/mcpManager');
 
 const app = express();
@@ -22,6 +23,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/chat', chatRouter);
+app.use('/api/title', titleRouter);
 
 app.use((err, req, res, next) => {
   console.error('[server error]', err);
