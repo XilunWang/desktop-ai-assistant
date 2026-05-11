@@ -11,8 +11,12 @@ const router = express.Router();
  *   data: {"delta":"..."}                       // LLM 文本增量
  *   data: {"tool_start":{id,name,args}}         // 开始执行工具
  *   data: {"tool_end":{id,name,args,result,isError}}
+ *   data: {"aborted":true}                      // 被用户中止
  *   data: {"error":"..."}
  *   data: {"done":true}
+ *
+ * 中止：客户端关闭连接（fetch abort）即触发后端 AbortController，
+ *      取消上游 LLM 流并跳出 Agent Loop。
  */
 router.post('/', async (req, res, next) => {
   try {
@@ -37,21 +41,47 @@ router.post('/', async (req, res, next) => {
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
 
-    const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+    // ===== 客户端断开 → 中止上游 =====
+    const ac = new AbortController();
+    let clientClosed = false;
+    const onClose = () => {
+      clientClosed = true;
+      ac.abort();
+    };
+    req.on('close', onClose);
+
+    const send = (obj) => {
+      if (clientClosed || res.writableEnded) return;
+      try {
+        res.write(`data: ${JSON.stringify(obj)}\n\n`);
+      } catch (e) {
+        /* socket 可能已断 */
+      }
+    };
 
     try {
-      await chatAgent({
+      const result = await chatAgent({
         model,
         messages: finalMessages,
         onText: (t) => send({ delta: t }),
         onToolStart: (e) => send({ tool_start: e }),
-        onToolEnd: (e) => send({ tool_end: e })
+        onToolEnd: (e) => send({ tool_end: e }),
+        signal: ac.signal
       });
-      send({ done: true });
+      if (result?.aborted || clientClosed) {
+        send({ aborted: true });
+      } else {
+        send({ done: true });
+      }
     } catch (e) {
-      send({ error: e.message });
+      if (clientClosed || ac.signal.aborted) {
+        send({ aborted: true });
+      } else {
+        send({ error: e.message });
+      }
     } finally {
-      res.end();
+      req.off?.('close', onClose);
+      if (!res.writableEnded) res.end();
     }
   } catch (err) {
     next(err);

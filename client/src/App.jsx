@@ -334,6 +334,19 @@ export default function App() {
                   );
                 } else if (json.error) {
                   throw new Error(json.error);
+                } else if (json.aborted) {
+                  // 后端确认中止 → 在末尾追加提示
+                  if (!assistantText.endsWith('⏹ 已停止')) {
+                    assistantText =
+                      (assistantText || '') +
+                      (assistantText ? '\n\n' : '') +
+                      '⏹ 已停止';
+                  }
+                  updateLast({
+                    role: 'assistant',
+                    content: assistantText,
+                    toolCalls: [...toolCalls]
+                  });
                 }
               } catch (e) {
                 if (e?.message) throw e;
@@ -342,7 +355,20 @@ export default function App() {
           }
         }
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (err.name === 'AbortError') {
+          // 用户主动停止：在内容末尾追加"已停止"标记
+          if (!assistantText.endsWith('⏹ 已停止')) {
+            assistantText =
+              (assistantText || '') +
+              (assistantText ? '\n\n' : '') +
+              '⏹ 已停止';
+          }
+          updateLast({
+            role: 'assistant',
+            content: assistantText,
+            toolCalls: [...toolCalls]
+          });
+        } else {
           assistantText =
             (assistantText || '') +
             `\n\n❌ 出错了：${err.message}\n\n请检查后端服务与 API Key。`;

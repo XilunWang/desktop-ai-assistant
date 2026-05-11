@@ -30,11 +30,11 @@ function getConfig() {
 }
 
 /**
- * 一次流式请求 + 解析，返回 { contentText, toolCalls }
+ * 一次流式请求 + 解析，返回 { contentText, toolCalls, aborted }
  * onDelta：每收到一段文本就调用
- * onEvent：工具相关事件（开始/结束）
+ * signal：AbortSignal，用于打断上游 fetch 与读流
  */
-async function streamOnce({ model, messages, tools, onDelta }) {
+async function streamOnce({ model, messages, tools, onDelta, signal }) {
   const cfg = getConfig();
   const url = `${cfg.baseURL}/chat/completions`;
   const body = {
@@ -47,14 +47,23 @@ async function streamOnce({ model, messages, tools, onDelta }) {
     body.tool_choice = 'auto';
   }
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${cfg.apiKey}`
-    },
-    body: JSON.stringify(body)
-  });
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal
+    });
+  } catch (e) {
+    if (e?.name === 'AbortError' || signal?.aborted) {
+      return { contentText: '', toolCalls: [], aborted: true };
+    }
+    throw e;
+  }
 
   if (!resp.ok || !resp.body) {
     const t = await resp.text().catch(() => '');
@@ -68,53 +77,82 @@ async function streamOnce({ model, messages, tools, onDelta }) {
   let contentText = '';
   // toolCalls: [{id, name, arguments(string)}]
   const toolCalls = [];
+  let aborted = false;
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+  // 中止时主动断流（让 reader.read() 立刻 reject）
+  const onAbort = () => {
+    try {
+      reader.cancel();
+    } catch (e) {
+      /* ignore */
+    }
+  };
+  signal?.addEventListener?.('abort', onAbort);
 
-    const parts = buffer.split('\n\n');
-    buffer = parts.pop() || '';
+  try {
+    while (true) {
+      if (signal?.aborted) {
+        aborted = true;
+        break;
+      }
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch (e) {
+        if (signal?.aborted || e?.name === 'AbortError') {
+          aborted = true;
+          break;
+        }
+        throw e;
+      }
+      const { value, done } = chunk;
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
 
-    for (const part of parts) {
-      const lines = part.split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('data:')) continue;
-        const payload = trimmed.slice(5).trim();
-        if (!payload || payload === '[DONE]') continue;
-        try {
-          const json = JSON.parse(payload);
-          const choice = json?.choices?.[0];
-          if (!choice) continue;
-          const delta = choice.delta || {};
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() || '';
 
-          if (delta.content) {
-            contentText += delta.content;
-            onDelta?.(delta.content);
-          }
+      for (const part of parts) {
+        const lines = part.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const payload = trimmed.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const json = JSON.parse(payload);
+            const choice = json?.choices?.[0];
+            if (!choice) continue;
+            const delta = choice.delta || {};
 
-          if (Array.isArray(delta.tool_calls)) {
-            for (const tc of delta.tool_calls) {
-              const idx = tc.index ?? 0;
-              if (!toolCalls[idx]) {
-                toolCalls[idx] = { id: '', name: '', arguments: '' };
-              }
-              if (tc.id) toolCalls[idx].id = tc.id;
-              if (tc.function?.name) toolCalls[idx].name = tc.function.name;
-              if (tc.function?.arguments)
-                toolCalls[idx].arguments += tc.function.arguments;
+            if (delta.content) {
+              contentText += delta.content;
+              onDelta?.(delta.content);
             }
+
+            if (Array.isArray(delta.tool_calls)) {
+              for (const tc of delta.tool_calls) {
+                const idx = tc.index ?? 0;
+                if (!toolCalls[idx]) {
+                  toolCalls[idx] = { id: '', name: '', arguments: '' };
+                }
+                if (tc.id) toolCalls[idx].id = tc.id;
+                if (tc.function?.name) toolCalls[idx].name = tc.function.name;
+                if (tc.function?.arguments)
+                  toolCalls[idx].arguments += tc.function.arguments;
+              }
+            }
+          } catch (e) {
+            // ignore
           }
-        } catch (e) {
-          // ignore
         }
       }
     }
+  } finally {
+    signal?.removeEventListener?.('abort', onAbort);
   }
 
-  return { contentText, toolCalls: toolCalls.filter(Boolean) };
+  return { contentText, toolCalls: toolCalls.filter(Boolean), aborted };
 }
 
 /**
@@ -122,22 +160,38 @@ async function streamOnce({ model, messages, tools, onDelta }) {
  * onText(text)         : LLM 输出的文本片段
  * onToolStart({name, args})
  * onToolEnd({name, args, result, isError})
+ * signal               : AbortSignal，可中止整个 Agent 流程
+ * 返回值: { aborted: boolean }
  */
-async function chatAgent({ model, messages, onText, onToolStart, onToolEnd }) {
+async function chatAgent({
+  model,
+  messages,
+  onText,
+  onToolStart,
+  onToolEnd,
+  signal
+}) {
   const tools = mcp.hasAnyTool() ? mcp.getOpenAITools() : null;
   const history = [...messages];
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    const { contentText, toolCalls } = await streamOnce({
+    if (signal?.aborted) return { aborted: true };
+
+    const { contentText, toolCalls, aborted } = await streamOnce({
       model,
       messages: history,
       tools,
-      onDelta: onText
+      onDelta: onText,
+      signal
     });
+
+    if (aborted || signal?.aborted) {
+      return { aborted: true };
+    }
 
     if (toolCalls.length === 0) {
       // 没有工具调用 → 结束
-      return;
+      return { aborted: false };
     }
 
     // 把 assistant 的 tool_calls 消息加入历史
@@ -153,6 +207,8 @@ async function chatAgent({ model, messages, onText, onToolStart, onToolEnd }) {
 
     // 依次执行
     for (const tc of toolCalls) {
+      if (signal?.aborted) return { aborted: true };
+
       let parsedArgs = {};
       try {
         parsedArgs = tc.arguments ? JSON.parse(tc.arguments) : {};
@@ -187,11 +243,14 @@ async function chatAgent({ model, messages, onText, onToolStart, onToolEnd }) {
         content: resultText
       });
     }
+
+    if (signal?.aborted) return { aborted: true };
     // 进入下一轮
   }
 
   // 触顶仍未停止
   onText?.('\n\n（已达最大工具调用轮次）');
+  return { aborted: false };
 }
 
 module.exports = { chatAgent };
